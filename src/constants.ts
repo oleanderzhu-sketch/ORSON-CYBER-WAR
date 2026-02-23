@@ -1,12 +1,20 @@
+import { Difficulty } from './types';
+
 export const CANVAS_WIDTH = 800;
 export const CANVAS_HEIGHT = 600;
 
+export const DIFFICULTY_CONFIGS = {
+  [Difficulty.SIMPLE]: { rockets: 120, speedMultiplier: 6 },
+  [Difficulty.MEDIUM]: { rockets: 320, speedMultiplier: 8 },
+  [Difficulty.HARD]: { rockets: 400, speedMultiplier: 12 },
+};
+
 export const BATTERY_CONFIGS = [
-  { x: 40, y: 560, maxAmmo: 25, label: 'L' },
-  { x: 220, y: 560, maxAmmo: 25, label: 'ML' },
-  { x: 400, y: 560, maxAmmo: 30, label: 'M' },
-  { x: 580, y: 560, maxAmmo: 25, label: 'MR' },
-  { x: 760, y: 560, maxAmmo: 25, label: 'R' },
+  { x: 40, y: 560, maxAmmo: 55, label: 'L' },
+  { x: 220, y: 560, maxAmmo: 55, label: 'ML' },
+  { x: 400, y: 560, maxAmmo: 55, label: 'M' },
+  { x: 580, y: 560, maxAmmo: 55, label: 'MR' },
+  { x: 760, y: 560, maxAmmo: 55, label: 'R' },
 ];
 
 export const CITY_CONFIGS = [
@@ -42,9 +50,13 @@ export const TRANSLATIONS = {
     enterName: 'Enter your name',
     submit: 'Submit Score',
     loading: 'Loading...',
+    difficulty: 'Difficulty',
+    simple: 'Simple',
+    medium: 'Medium',
+    hard: 'Hard',
   },
   zh: {
-    title: 'Orson 网络战争',
+    title: '赛博保卫战',
     start: '开始任务',
     restart: '再玩一次',
     win: '任务完成！',
@@ -62,5 +74,9 @@ export const TRANSLATIONS = {
     enterName: '输入你的名字',
     submit: '提交分数',
     loading: '加载中...',
+    difficulty: '难度',
+    simple: '简单',
+    medium: '中等',
+    hard: '困难',
   }
 };

@@ -32,6 +32,7 @@ export interface Missile extends Entity {
   targetY: number;
   speed: number;
   progress: number; // 0 to 1
+  targetRocketId?: string;
 }
 
 export interface Explosion extends Entity {
@@ -58,6 +59,12 @@ export interface LeaderboardEntry {
   name: string;
   score: number;
   date: string;
+}
+
+export enum Difficulty {
+  SIMPLE = 'SIMPLE',
+  MEDIUM = 'MEDIUM',
+  HARD = 'HARD'
 }
 
 export type Language = 'en' | 'zh';

@@ -14,9 +14,17 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ lang }) => {
 
   useEffect(() => {
     fetch('/api/scores')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error(`Server returned ${res.status}`);
+        return res.json();
+      })
       .then(data => {
-        setScores(data);
+        if (Array.isArray(data)) {
+          setScores(data);
+        } else {
+          console.error('Expected array of scores, got:', data);
+          setScores([]);
+        }
         setLoading(false);
       })
       .catch(err => {

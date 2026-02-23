@@ -3,18 +3,19 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Shield, Target, Zap, RotateCcw, Globe, Trophy, Send } from 'lucide-react';
 import GameCanvas from './components/GameCanvas';
 import Leaderboard from './components/Leaderboard';
-import { GameStatus, Language } from './types';
+import { GameStatus, Language, Difficulty } from './types';
 import { TRANSLATIONS, WIN_SCORE } from './constants';
 
 export default function App() {
   const [status, setStatus] = useState<GameStatus>(GameStatus.START);
   const [score, setScore] = useState(0);
-  const [ammo, setAmmo] = useState<number[]>([25, 25, 30, 25, 25]);
+  const [ammo, setAmmo] = useState<number[]>([55, 55, 55, 55, 55]);
   const [lang, setLang] = useState<Language>('en');
   const [level, setLevel] = useState(1);
   const [playerName, setPlayerName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [difficulty, setDifficulty] = useState<Difficulty>(Difficulty.SIMPLE);
 
   const t = TRANSLATIONS[lang];
 
@@ -70,14 +71,14 @@ export default function App() {
       <header className="fixed top-0 left-0 w-full p-4 flex justify-between items-center z-50 bg-gradient-to-b from-black/80 to-transparent backdrop-blur-sm">
         <div className="flex items-center gap-4">
           <div className="flex flex-col">
-            <span className="text-[10px] uppercase opacity-50">{t.level}</span>
+            <span className="text-[10px] uppercase opacity-50">{t.level} / 关卡</span>
             <span className="text-lg font-bold text-emerald-500">{level}</span>
           </div>
         </div>
 
         <div className="flex items-center gap-8">
           <div className="flex flex-col items-end">
-            <span className="text-[10px] uppercase opacity-50">{t.score}</span>
+            <span className="text-[10px] uppercase opacity-50">{t.score} / 得分</span>
             <span className="text-2xl font-bold text-white tabular-nums">
               {score.toString().padStart(4, '0')}
               <span className="text-sm opacity-30 ml-1">/ {WIN_SCORE}</span>
@@ -98,6 +99,7 @@ export default function App() {
       <main className="relative w-full h-screen flex items-center justify-center pt-16">
         <GameCanvas 
           status={status}
+          difficulty={difficulty}
           onScoreChange={handleScoreChange}
           onStatusChange={handleStatusChange}
           onAmmoChange={handleAmmoChange}
@@ -123,16 +125,50 @@ export default function App() {
                     <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
                       <Target className="w-8 h-8 text-emerald-500" />
                     </div>
-                    <h2 className="text-5xl font-display mb-2 tracking-wider uppercase">{t.title}</h2>
+                    <h2 className="text-5xl font-display mb-2 tracking-widest uppercase text-emerald-500">
+                      {TRANSLATIONS.en.title}
+                      <br />
+                      <span className="text-3xl font-artistic font-bold tracking-normal">{TRANSLATIONS.zh.title}</span>
+                    </h2>
                     <p className="text-zinc-400 mb-8 text-sm leading-relaxed">
-                      {t.instructions}
+                      {TRANSLATIONS.en.instructions}
+                      <br />
+                      {TRANSLATIONS.zh.instructions}
                     </p>
+
+                    <div className="mb-8">
+                      <div className="text-[10px] uppercase opacity-50 mb-3 tracking-widest">{t.difficulty} / 难度</div>
+                      <div className="grid grid-cols-3 gap-3">
+                        {[
+                          { id: Difficulty.SIMPLE, labelEn: TRANSLATIONS.en.simple, labelZh: TRANSLATIONS.zh.simple, activeClass: 'bg-emerald-500/20 border-emerald-500 text-emerald-400' },
+                          { id: Difficulty.MEDIUM, labelEn: TRANSLATIONS.en.medium, labelZh: TRANSLATIONS.zh.medium, activeClass: 'bg-yellow-500/20 border-yellow-500 text-yellow-400' },
+                          { id: Difficulty.HARD, labelEn: TRANSLATIONS.en.hard, labelZh: TRANSLATIONS.zh.hard, activeClass: 'bg-red-500/20 border-red-500 text-red-400' }
+                        ].map((d) => (
+                          <button
+                            key={d.id}
+                            onClick={() => setDifficulty(d.id)}
+                            className={`py-2 px-4 rounded-xl border text-[10px] font-bold transition-all flex flex-col items-center ${
+                              difficulty === d.id 
+                                ? d.activeClass
+                                : 'bg-white/5 border-white/10 text-zinc-500 hover:bg-white/10'
+                            }`}
+                          >
+                            <span>{d.labelEn}</span>
+                            <span className="opacity-70">{d.labelZh}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
                     <button 
                       onClick={() => setStatus(GameStatus.PLAYING)}
-                      className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2 mb-8"
+                      className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-xl transition-all active:scale-95 flex flex-col items-center justify-center mb-8"
                     >
-                      <Zap className="w-5 h-5" />
-                      {t.start}
+                      <div className="flex items-center gap-2">
+                        <Zap className="w-5 h-5" />
+                        {TRANSLATIONS.en.start}
+                      </div>
+                      <div className="text-xs opacity-70">{TRANSLATIONS.zh.start}</div>
                     </button>
                     
                     <Leaderboard lang={lang} />
@@ -216,7 +252,7 @@ export default function App() {
                 <motion.div 
                   className="h-full bg-emerald-500"
                   initial={false}
-                  animate={{ width: `${(count / (i === 2 ? 30 : 25)) * 100}%` }}
+                  animate={{ width: `${(count / 55) * 100}%` }}
                 />
               </div>
             </div>

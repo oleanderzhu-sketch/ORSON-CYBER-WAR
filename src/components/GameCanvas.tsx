@@ -6,7 +6,8 @@ import {
   Explosion, 
   Battery, 
   City, 
-  Point 
+  Point,
+  Difficulty
 } from '../types';
 import { 
   CANVAS_WIDTH, 
@@ -17,11 +18,13 @@ import {
   EXPLOSION_GROWTH_RATE, 
   MISSILE_SPEED, 
   ROCKET_BASE_SPEED,
-  WIN_SCORE
+  WIN_SCORE,
+  DIFFICULTY_CONFIGS
 } from '../constants';
 
 interface GameCanvasProps {
   status: GameStatus;
+  difficulty: Difficulty;
   onScoreChange: (score: number) => void;
   onStatusChange: (status: GameStatus) => void;
   onAmmoChange: (ammo: number[]) => void;
@@ -30,6 +33,7 @@ interface GameCanvasProps {
 
 const GameCanvas: React.FC<GameCanvasProps> = ({ 
   status, 
+  difficulty,
   onScoreChange, 
   onStatusChange,
   onAmmoChange,
@@ -70,7 +74,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     const state = gameState.current;
     state.levelInProgress = true;
     state.rocketsSpawned = 0;
-    state.rocketsPerLevel = 10 + (state.level * 2);
+    
+    const diffConfig = DIFFICULTY_CONFIGS[difficulty];
+    state.rocketsPerLevel = diffConfig.rockets;
     
     // Refill Ammo
     state.batteries.forEach(b => {
@@ -173,13 +179,15 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       
       const target = targets[Math.floor(Math.random() * targets.length)];
       
+      const diffConfig = DIFFICULTY_CONFIGS[difficulty];
+      
       const newRocket: Rocket = {
         id: Math.random().toString(),
         x: startX,
         y: 0,
         targetX: target.x,
         targetY: target.y,
-        speed: ROCKET_BASE_SPEED + (state.level * 0.075),
+        speed: (ROCKET_BASE_SPEED + (state.level * 0.075)) * diffConfig.speedMultiplier,
         active: true,
         color: '#ff4444'
       };
@@ -223,6 +231,15 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
     // Update Missiles
     gameState.current.missiles.forEach(missile => {
+      // Heat Tracking
+      if (missile.targetRocketId) {
+        const targetRocket = gameState.current.rockets.find(r => r.id === missile.targetRocketId && r.active);
+        if (targetRocket) {
+          missile.targetX = targetRocket.x;
+          missile.targetY = targetRocket.y;
+        }
+      }
+
       const dx = missile.targetX - missile.startX;
       const dy = missile.targetY - missile.startY;
       const totalDist = Math.sqrt(dx * dx + dy * dy);
@@ -270,7 +287,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
           const dist = Math.sqrt(dx * dx + dy * dy);
           if (dist < exp.radius) {
             rocket.active = false;
-            gameState.current.score += 10;
+            gameState.current.score += 20;
             onScoreChange(gameState.current.score);
             
             // Check win condition
@@ -623,18 +640,36 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       const batteryIndex = gameState.current.batteries.indexOf(closestBattery);
       const isMiddle = batteryIndex === 2;
       
-      const shots = isMiddle ? 3 : 1;
+      // Side batteries (0, 1, 3, 4) fire 2, Middle (2) fires 3
+      const shots = isMiddle ? 3 : 2;
       
       if (closestBattery.ammo >= shots) {
         closestBattery.ammo -= shots;
         onAmmoChange(gameState.current.batteries.map(b => b.ammo));
         
+        // Find nearest rocket for heat tracking
+        let nearestRocketId: string | undefined;
+        let minRocketDist = Infinity;
+        gameState.current.rockets.forEach(rocket => {
+          if (rocket.active) {
+            const rdx = rocket.x - x;
+            const rdy = rocket.y - y;
+            const rdist = Math.sqrt(rdx * rdx + rdy * rdy);
+            if (rdist < minRocketDist && rdist < 150) { // Only track if reasonably close to click
+              minRocketDist = rdist;
+              nearestRocketId = rocket.id;
+            }
+          }
+        });
+
         for (let i = 0; i < shots; i++) {
           let tx = x;
           let ty = y;
           
           if (isMiddle && i === 1) tx -= 40;
           if (isMiddle && i === 2) tx += 40;
+          
+          if (!isMiddle && i === 1) tx += 20; // Offset for double shot
 
           gameState.current.missiles.push({
             id: Math.random().toString(),
@@ -646,7 +681,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
             targetY: ty,
             speed: MISSILE_SPEED,
             progress: 0,
-            active: true
+            active: true,
+            targetRocketId: nearestRocketId
           });
         }
       }
