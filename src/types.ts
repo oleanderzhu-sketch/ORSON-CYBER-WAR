@@ -18,11 +18,25 @@ export interface Entity {
   active: boolean;
 }
 
-export interface Rocket extends Entity {
+export enum RobotPathType {
+  LINEAR = 'LINEAR',
+  SINE = 'SINE',
+  ZIGZAG = 'ZIGZAG',
+  PARABOLIC = 'PARABOLIC',
+  HOMING = 'HOMING'
+}
+
+export interface Robot extends Entity {
+  startX: number;
+  startY: number;
   targetX: number;
   targetY: number;
   speed: number;
   color: string;
+  pathType: RobotPathType;
+  amplitude: number;
+  frequency: number;
+  phase: number;
 }
 
 export interface Missile extends Entity {
@@ -32,7 +46,7 @@ export interface Missile extends Entity {
   targetY: number;
   speed: number;
   progress: number; // 0 to 1
-  targetRocketId?: string;
+  targetRobotId?: string;
 }
 
 export interface Explosion extends Entity {

@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { 
   GameStatus, 
-  Rocket, 
+  Robot, 
+  RobotPathType,
   Missile, 
   Explosion, 
   Battery, 
@@ -46,9 +47,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const gameState = useRef({
     score: 0,
     level: 1,
-    rockets: [] as Rocket[],
+    robots: [] as Robot[],
     missiles: [] as Missile[],
     explosions: [] as Explosion[],
+    comboCount: 0,
+    comboMessage: { text: '', time: 0, active: false },
     batteries: BATTERY_CONFIGS.map((config, index) => ({
       ...config,
       id: Math.random().toString(),
@@ -64,19 +67,20 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       destroyed: false,
       canRecover: true
     })) as City[],
-    lastRocketTime: 0,
-    rocketsSpawned: 0,
-    rocketsPerLevel: 10,
+    lastRobotTime: 0,
+    robotsSpawned: 0,
+    robotsPerLevel: 10,
     levelInProgress: false,
   });
 
   const startLevel = () => {
     const state = gameState.current;
     state.levelInProgress = true;
-    state.rocketsSpawned = 0;
+    state.robotsSpawned = 0;
+    state.comboCount = 0;
     
     const diffConfig = DIFFICULTY_CONFIGS[difficulty];
-    state.rocketsPerLevel = diffConfig.rockets;
+    state.robotsPerLevel = diffConfig.rockets;
     
     // Refill Ammo
     state.batteries.forEach(b => {
@@ -126,9 +130,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     gameState.current = {
       score: 0,
       level: 1,
-      rockets: [],
+      robots: [],
       missiles: [],
       explosions: [],
+      comboCount: 0,
+      comboMessage: { text: '', time: 0, active: false },
       batteries: BATTERY_CONFIGS.map((config, index) => ({
         ...config,
         id: Math.random().toString(),
@@ -144,9 +150,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         destroyed: false,
         canRecover: true
       })),
-      lastRocketTime: 0,
-      rocketsSpawned: 0,
-      rocketsPerLevel: 10,
+      lastRobotTime: 0,
+      robotsSpawned: 0,
+      robotsPerLevel: 10,
       levelInProgress: false,
     };
     onScoreChange(0);
@@ -161,15 +167,29 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     }
   }, [status]);
 
-  const spawnRocket = (time: number) => {
+  const spawnRobot = (time: number) => {
     const state = gameState.current;
     if (!state.levelInProgress) return;
-    if (state.rocketsSpawned >= state.rocketsPerLevel) return;
+    if (state.robotsSpawned >= state.robotsPerLevel) return;
 
     const actualInterval = Math.max(400, 2000 - (state.level * 150));
     
-    if (time - state.lastRocketTime > actualInterval) {
-      const startX = Math.random() * CANVAS_WIDTH;
+    if (time - state.lastRobotTime > actualInterval) {
+      // Spawn from top, left, or right
+      const side = Math.floor(Math.random() * 3);
+      let startX, startY;
+      
+      if (side === 0) { // Top
+        startX = Math.random() * CANVAS_WIDTH;
+        startY = -20;
+      } else if (side === 1) { // Left
+        startX = -20;
+        startY = Math.random() * (CANVAS_HEIGHT * 0.6);
+      } else { // Right
+        startX = CANVAS_WIDTH + 20;
+        startY = Math.random() * (CANVAS_HEIGHT * 0.6);
+      }
+
       const targets = [
         ...state.cities.filter(c => !c.destroyed),
         ...state.batteries.filter(b => !b.destroyed)
@@ -181,19 +201,27 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       
       const diffConfig = DIFFICULTY_CONFIGS[difficulty];
       
-      const newRocket: Rocket = {
+      const pathType = RobotPathType.LINEAR;
+
+      const newRobot: Robot = {
         id: Math.random().toString(),
         x: startX,
-        y: 0,
+        y: startY,
+        startX: startX,
+        startY: startY,
         targetX: target.x,
         targetY: target.y,
         speed: (ROCKET_BASE_SPEED + (state.level * 0.075)) * diffConfig.speedMultiplier,
         active: true,
-        color: '#ff4444'
+        color: '#ff4444',
+        pathType,
+        amplitude: 0,
+        frequency: 0,
+        phase: 0
       };
       
-      state.rockets.push(newRocket);
-      state.lastRocketTime = time;
+      state.robots.push(newRobot);
+      state.lastRobotTime = time;
       state.rocketsSpawned++;
     }
   };
@@ -201,42 +229,47 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const update = (time: number) => {
     if (status !== GameStatus.PLAYING) return;
 
-    spawnRocket(time);
+    spawnRobot(time);
 
     const state = gameState.current;
 
+    // Update combo message
+    if (state.comboMessage.active && time - state.comboMessage.time > 2000) {
+      state.comboMessage.active = false;
+    }
+
     // Check level end
     if (state.levelInProgress && 
-        state.rocketsSpawned >= state.rocketsPerLevel && 
-        state.rockets.length === 0 && 
+        state.robotsSpawned >= state.robotsPerLevel && 
+        state.robots.length === 0 && 
         state.explosions.length === 0) {
       endLevel();
     }
 
-    // Update Rockets
-    gameState.current.rockets.forEach(rocket => {
-      const dx = rocket.targetX - rocket.x;
-      const dy = rocket.targetY - rocket.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
+    // Update Robots
+    gameState.current.robots.forEach(robot => {
+      const dx = robot.targetX - robot.x;
+      const dy = robot.targetY - robot.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
       
-      if (distance < rocket.speed) {
-        rocket.active = false;
-        // Impact!
-        checkImpact(rocket.targetX, rocket.targetY);
+      if (dist < robot.speed) {
+        robot.active = false;
+        checkImpact(robot.targetX, robot.targetY);
+        state.comboCount = 0; // Reset combo on impact
       } else {
-        rocket.x += (dx / distance) * rocket.speed;
-        rocket.y += (dy / distance) * rocket.speed;
+        robot.x += (dx / dist) * robot.speed;
+        robot.y += (dy / dist) * robot.speed;
       }
     });
 
     // Update Missiles
     gameState.current.missiles.forEach(missile => {
       // Heat Tracking
-      if (missile.targetRocketId) {
-        const targetRocket = gameState.current.rockets.find(r => r.id === missile.targetRocketId && r.active);
-        if (targetRocket) {
-          missile.targetX = targetRocket.x;
-          missile.targetY = targetRocket.y;
+      if (missile.targetRobotId) {
+        const targetRobot = gameState.current.robots.find(r => r.id === missile.targetRobotId && r.active);
+        if (targetRobot) {
+          missile.targetX = targetRobot.x;
+          missile.targetY = targetRobot.y;
         }
       }
 
@@ -279,17 +312,24 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         }
       }
 
-      // Check collision with rockets
-      gameState.current.rockets.forEach(rocket => {
-        if (rocket.active) {
-          const dx = rocket.x - exp.x;
-          const dy = rocket.y - exp.y;
+      // Check collision with robots
+      gameState.current.robots.forEach(robot => {
+        if (robot.active) {
+          const dx = robot.x - exp.x;
+          const dy = robot.y - exp.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
           if (dist < exp.radius) {
-            rocket.active = false;
+            robot.active = false;
             gameState.current.score += 20;
             onScoreChange(gameState.current.score);
             
+            // Combo logic
+            state.comboCount++;
+            if (state.comboCount >= 5) {
+              state.comboMessage = { text: '干得漂亮', time: time, active: true };
+              state.comboCount = 0; // Reset or keep going? User said "连续攻击5个", so reset.
+            }
+
             // Check win condition
             if (gameState.current.score >= WIN_SCORE) {
               onStatusChange(GameStatus.WON);
@@ -300,7 +340,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     });
 
     // Cleanup
-    gameState.current.rockets = gameState.current.rockets.filter(r => r.active);
+    gameState.current.robots = gameState.current.robots.filter(r => r.active);
     gameState.current.missiles = gameState.current.missiles.filter(m => m.active);
     gameState.current.explosions = gameState.current.explosions.filter(e => e.active);
 
@@ -542,23 +582,94 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       }
     });
 
-    // Draw Rockets
-    gameState.current.rockets.forEach(rocket => {
-      ctx.strokeStyle = rocket.color;
-      ctx.lineWidth = 2;
+    // Draw Robots
+    gameState.current.robots.forEach(robot => {
+      ctx.save();
+      ctx.translate(robot.x, robot.y);
+      
+      // Rotate to face target
+      const angle = Math.atan2(robot.targetY - robot.y, robot.targetX - robot.x);
+      ctx.rotate(angle + Math.PI / 2);
+
+      // Default robot colors
+      const bodyColor = '#ff4444';
+      const antennaColor = '#ffff00';
+      
+      // Thruster effect (Flickering flame)
+      const flameSize = 5 + Math.random() * 10;
+      const flameGradient = ctx.createLinearGradient(0, 10, 0, 10 + flameSize);
+      flameGradient.addColorStop(0, '#ffaa00');
+      flameGradient.addColorStop(1, 'transparent');
+      ctx.fillStyle = flameGradient;
       ctx.beginPath();
-      ctx.moveTo(rocket.x, rocket.y);
-      // Trail
-      const dx = rocket.targetX - rocket.x;
-      const dy = rocket.targetY - rocket.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      ctx.lineTo(rocket.x - (dx/dist)*50, rocket.y - (dy/dist)*50);
-      ctx.stroke();
+      ctx.moveTo(-5, 10);
+      ctx.lineTo(5, 10);
+      ctx.lineTo(0, 10 + flameSize);
+      ctx.fill();
+
+      // Robot body
+      ctx.fillStyle = bodyColor;
+      ctx.fillRect(-10, -10, 20, 20);
       
       // Head
+      ctx.fillStyle = '#cc0000';
+      ctx.fillRect(-6, -18, 12, 8);
+      
+      // Eyes
       ctx.fillStyle = '#fff';
-      ctx.fillRect(rocket.x - 1, rocket.y - 1, 2, 2);
+      ctx.fillRect(-4, -15, 2, 2);
+      ctx.fillRect(2, -15, 2, 2);
+      
+      // Antenna
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, -18);
+      ctx.lineTo(0, -24);
+      ctx.stroke();
+      ctx.fillStyle = antennaColor;
+      ctx.beginPath();
+      ctx.arc(0, -24, 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
     });
+
+    // Draw Combo Message / Bumblebee Logo
+    if (gameState.current.comboMessage.active) {
+      const { text } = gameState.current.comboMessage;
+      ctx.save();
+      ctx.translate(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 3);
+      
+      // Bumblebee Logo (Simplified Shield)
+      ctx.fillStyle = '#f1c40f'; // Yellow
+      ctx.beginPath();
+      ctx.moveTo(0, -40);
+      ctx.lineTo(30, -20);
+      ctx.lineTo(30, 20);
+      ctx.lineTo(0, 40);
+      ctx.lineTo(-30, 20);
+      ctx.lineTo(-30, -20);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      
+      // Black patterns
+      ctx.fillStyle = '#000';
+      ctx.fillRect(-15, -10, 30, 5);
+      ctx.fillRect(-15, 5, 30, 5);
+      
+      // Text
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 24px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = '#000';
+      ctx.shadowBlur = 10;
+      ctx.fillText(text, 0, 80);
+      ctx.restore();
+    }
 
     // Draw Missiles
     gameState.current.missiles.forEach(missile => {
@@ -647,17 +758,17 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         closestBattery.ammo -= shots;
         onAmmoChange(gameState.current.batteries.map(b => b.ammo));
         
-        // Find nearest rocket for heat tracking
-        let nearestRocketId: string | undefined;
-        let minRocketDist = Infinity;
-        gameState.current.rockets.forEach(rocket => {
-          if (rocket.active) {
-            const rdx = rocket.x - x;
-            const rdy = rocket.y - y;
+        // Find nearest robot for heat tracking
+        let nearestRobotId: string | undefined;
+        let minRobotDist = Infinity;
+        gameState.current.robots.forEach(robot => {
+          if (robot.active) {
+            const rdx = robot.x - x;
+            const rdy = robot.y - y;
             const rdist = Math.sqrt(rdx * rdx + rdy * rdy);
-            if (rdist < minRocketDist && rdist < 150) { // Only track if reasonably close to click
-              minRocketDist = rdist;
-              nearestRocketId = rocket.id;
+            if (rdist < minRobotDist && rdist < 150) { // Only track if reasonably close to click
+              minRobotDist = rdist;
+              nearestRobotId = robot.id;
             }
           }
         });
@@ -682,7 +793,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
             speed: MISSILE_SPEED,
             progress: 0,
             active: true,
-            targetRocketId: nearestRocketId
+            targetRobotId: nearestRobotId
           });
         }
       }

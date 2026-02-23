@@ -1,6 +1,5 @@
 import express from "express";
 import { createServer as createViteServer } from "vite";
-import Database from "better-sqlite3";
 import path from "path";
 
 const isVercel = process.env.VERCEL === '1';
@@ -8,23 +7,30 @@ let db: any;
 let useMemoryStore = false;
 let memoryScores: any[] = [];
 
-try {
-  db = new Database("leaderboard.db");
-  // Initialize database
-  if (!isVercel) {
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS scores (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        score INTEGER NOT NULL,
-        date TEXT NOT NULL
-      )
-    `);
+// Lazy load better-sqlite3 to prevent crash on environments where it can't be installed
+async function initDb() {
+  try {
+    const { default: Database } = await import("better-sqlite3");
+    db = new Database("leaderboard.db");
+    if (!isVercel) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS scores (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          score INTEGER NOT NULL,
+          date TEXT NOT NULL
+        )
+      `);
+    }
+    console.log("SQLite database initialized");
+  } catch (error) {
+    console.error("Failed to initialize SQLite database, falling back to memory store:", error);
+    useMemoryStore = true;
   }
-} catch (error) {
-  console.error("Failed to initialize SQLite database, falling back to memory store:", error);
-  useMemoryStore = true;
 }
+
+// Initialize DB immediately
+initDb();
 
 const app = express();
 app.use(express.json());
