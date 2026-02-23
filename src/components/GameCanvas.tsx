@@ -45,13 +45,13 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     rockets: [] as Rocket[],
     missiles: [] as Missile[],
     explosions: [] as Explosion[],
-    batteries: BATTERY_CONFIGS.map(config => ({
+    batteries: BATTERY_CONFIGS.map((config, index) => ({
       ...config,
       id: Math.random().toString(),
       ammo: config.maxAmmo,
       active: true,
       destroyed: false,
-      shieldActive: true
+      shieldActive: index === 2
     })) as Battery[],
     cities: CITY_CONFIGS.map(config => ({
       ...config,
@@ -123,13 +123,13 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       rockets: [],
       missiles: [],
       explosions: [],
-      batteries: BATTERY_CONFIGS.map(config => ({
+      batteries: BATTERY_CONFIGS.map((config, index) => ({
         ...config,
         id: Math.random().toString(),
         ammo: config.maxAmmo,
         active: true,
         destroyed: false,
-        shieldActive: true
+        shieldActive: index === 2
       })),
       cities: CITY_CONFIGS.map(config => ({
         ...config,
@@ -469,32 +469,59 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       if (!battery.destroyed) {
         // Shield
         if (battery.shieldActive) {
-          ctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
-          ctx.lineWidth = 2;
+          ctx.strokeStyle = 'rgba(0, 255, 255, 0.6)';
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([4, 2]); // Dashed shield for 2D look
           ctx.beginPath();
-          ctx.arc(battery.x, battery.y - 5, 30, 0, Math.PI * 2);
+          ctx.arc(battery.x, battery.y - 5, 32, 0, Math.PI * 2);
           ctx.stroke();
+          ctx.setLineDash([]); // Reset dash
           
-          ctx.fillStyle = 'rgba(0, 255, 255, 0.1)';
+          ctx.fillStyle = 'rgba(0, 255, 255, 0.05)';
           ctx.fill();
+
+          // Shield Status Indicator
+          ctx.fillStyle = '#00ffff';
+          ctx.font = 'bold 8px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('SHIELD ACTIVE', battery.x, battery.y - 40);
         }
 
+        // 2D Turret Effect
         ctx.fillStyle = '#00ff00';
+        ctx.strokeStyle = '#004400';
+        ctx.lineWidth = 2;
+
+        // Base
         ctx.beginPath();
-        ctx.moveTo(battery.x - 20, battery.y + 10);
-        ctx.lineTo(battery.x + 20, battery.y + 10);
-        ctx.lineTo(battery.x, battery.y - 20);
-        ctx.closePath();
+        ctx.roundRect(battery.x - 20, battery.y, 40, 10, 2);
         ctx.fill();
+        ctx.stroke();
+
+        // Turret Body
+        ctx.beginPath();
+        ctx.arc(battery.x, battery.y, 12, Math.PI, 0);
+        ctx.fill();
+        ctx.stroke();
+
+        // Barrel
+        ctx.fillRect(battery.x - 4, battery.y - 25, 8, 15);
+        ctx.strokeRect(battery.x - 4, battery.y - 25, 8, 15);
         
         // Ammo text
         ctx.fillStyle = '#fff';
-        ctx.font = '10px monospace';
+        ctx.font = 'bold 10px monospace';
         ctx.textAlign = 'center';
         ctx.fillText(battery.ammo.toString(), battery.x, battery.y + 25);
       } else {
-        ctx.fillStyle = '#ff4444';
-        ctx.fillRect(battery.x - 10, battery.y, 20, 10);
+        // Destroyed 2D look
+        ctx.fillStyle = '#333';
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(battery.x - 15, battery.y + 5, 30, 5, 1);
+        ctx.fill();
+        ctx.stroke();
       }
     });
 

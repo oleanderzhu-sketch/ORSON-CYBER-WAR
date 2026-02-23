@@ -70,16 +70,6 @@ export default function App() {
       <header className="fixed top-0 left-0 w-full p-4 flex justify-between items-center z-50 bg-gradient-to-b from-black/80 to-transparent backdrop-blur-sm">
         <div className="flex items-center gap-4">
           <div className="flex flex-col">
-            <h1 className="text-3xl font-display tracking-wider text-emerald-500 flex items-center gap-2 uppercase">
-              <Shield className="w-6 h-6" />
-              {t.title}
-            </h1>
-            <div className="text-[10px] opacity-50 uppercase tracking-widest">Sector Defense Protocol v2.4</div>
-          </div>
-          
-          <div className="h-8 w-px bg-white/10 mx-2" />
-          
-          <div className="flex flex-col">
             <span className="text-[10px] uppercase opacity-50">{t.level}</span>
             <span className="text-lg font-bold text-emerald-500">{level}</span>
           </div>
