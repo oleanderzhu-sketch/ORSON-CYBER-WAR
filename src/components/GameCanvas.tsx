@@ -766,7 +766,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
             const rdx = robot.x - x;
             const rdy = robot.y - y;
             const rdist = Math.sqrt(rdx * rdx + rdy * rdy);
-            if (rdist < minRobotDist && rdist < 150) { // Only track if reasonably close to click
+            if (rdist < minRobotDist && rdist < 300) { // Increased tracking range for better hit rate
               minRobotDist = rdist;
               nearestRobotId = robot.id;
             }

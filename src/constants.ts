@@ -1,7 +1,7 @@
 import { Difficulty } from './types';
 
 export const CANVAS_WIDTH = 800;
-export const CANVAS_HEIGHT = 600;
+export const CANVAS_HEIGHT = 1000;
 
 export const DIFFICULTY_CONFIGS = {
   [Difficulty.SIMPLE]: { rockets: 120, speedMultiplier: 6 },
@@ -10,18 +10,18 @@ export const DIFFICULTY_CONFIGS = {
 };
 
 export const BATTERY_CONFIGS = [
-  { x: 40, y: 560, maxAmmo: 55, label: 'L' },
-  { x: 220, y: 560, maxAmmo: 55, label: 'ML' },
-  { x: 400, y: 560, maxAmmo: 55, label: 'M' },
-  { x: 580, y: 560, maxAmmo: 55, label: 'MR' },
-  { x: 760, y: 560, maxAmmo: 55, label: 'R' },
+  { x: 40, y: 960, maxAmmo: 55, label: 'L' },
+  { x: 220, y: 960, maxAmmo: 55, label: 'ML' },
+  { x: 400, y: 960, maxAmmo: 55, label: 'M' },
+  { x: 580, y: 960, maxAmmo: 55, label: 'MR' },
+  { x: 760, y: 960, maxAmmo: 55, label: 'R' },
 ];
 
 export const CITY_CONFIGS = [
-  { x: 120, y: 570 },
-  { x: 300, y: 570 },
-  { x: 500, y: 570 },
-  { x: 680, y: 570 },
+  { x: 120, y: 970 },
+  { x: 300, y: 970 },
+  { x: 500, y: 970 },
+  { x: 680, y: 970 },
 ];
 
 export const EXPLOSION_MAX_RADIUS = 120;

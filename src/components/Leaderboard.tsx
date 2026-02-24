@@ -41,17 +41,27 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ lang }) => {
     <div className="w-full mt-8 overflow-hidden rounded-xl border border-white/10 bg-black/20">
       <div className="p-4 border-bottom border-white/10 bg-white/5 flex items-center gap-2">
         <Trophy className="w-4 h-4 text-yellow-500" />
-        <h3 className="font-bold uppercase tracking-wider text-xs">{t.leaderboard}</h3>
+        <h3 className="font-bold uppercase tracking-wider text-xs">
+          {TRANSLATIONS.en.leaderboard} / {TRANSLATIONS.zh.leaderboard}
+        </h3>
       </div>
       
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
           <thead>
             <tr className="border-b border-white/5 text-zinc-500">
-              <th className="p-3 font-medium flex items-center gap-1"><Hash className="w-3 h-3" /> {t.rank}</th>
-              <th className="p-3 font-medium"><User className="w-3 h-3 inline mr-1" /> {t.name}</th>
-              <th className="p-3 font-medium text-right"><Trophy className="w-3 h-3 inline mr-1" /> {t.score}</th>
-              <th className="p-3 font-medium text-right"><Calendar className="w-3 h-3 inline mr-1" /> {t.date}</th>
+              <th className="p-3 font-medium flex items-center gap-1">
+                <Hash className="w-3 h-3" /> {TRANSLATIONS.en.rank} / {TRANSLATIONS.zh.rank}
+              </th>
+              <th className="p-3 font-medium">
+                <User className="w-3 h-3 inline mr-1" /> {TRANSLATIONS.en.name} / {TRANSLATIONS.zh.name}
+              </th>
+              <th className="p-3 font-medium text-right">
+                <Trophy className="w-3 h-3 inline mr-1" /> {TRANSLATIONS.en.score} / {TRANSLATIONS.zh.score}
+              </th>
+              <th className="p-3 font-medium text-right">
+                <Calendar className="w-3 h-3 inline mr-1" /> {TRANSLATIONS.en.date} / {TRANSLATIONS.zh.date}
+              </th>
             </tr>
           </thead>
           <tbody>
